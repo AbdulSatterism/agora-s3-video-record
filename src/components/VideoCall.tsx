@@ -126,8 +126,12 @@ function CallUI({ channelName, appId }: VideoCallProps) {
 
   useEffect(() => {
     if (token && uid && localCameraTrack && localMicrophoneTrack) {
+      // Ensure camera is enabled and publishing to remote users
       localCameraTrack.setEnabled(true).catch(console.error);
       localMicrophoneTrack.setEnabled(true).catch(console.error);
+      // Also make sure they are not muted locally
+      localCameraTrack.setMuted(false).catch(console.error);
+      localMicrophoneTrack.setMuted(false).catch(console.error);
     }
   }, [token, uid, localCameraTrack, localMicrophoneTrack]);
 
@@ -149,8 +153,9 @@ function CallUI({ channelName, appId }: VideoCallProps) {
     if (screenTrack.audioTrack) publishTracks.push(screenTrack.audioTrack);
   }
   
-  // Always publish camera unless it's muted
-  if (localCameraTrack && !camMuted) {
+  // ✅ CAMERA FIX: Always publish camera - it's visible to others only when enabled and published
+  // Camera is only visually muted on this user's side, but still published for recording/sharing
+  if (localCameraTrack) {
     publishTracks.push(localCameraTrack);
   }
 
@@ -171,8 +176,15 @@ function CallUI({ channelName, appId }: VideoCallProps) {
   }
 
   async function toggleCam() {
-    await localCameraTrack?.setMuted(!camMuted);
-    setCamMuted((prev) => !prev);
+    // Toggle camera on/off for remote users (not just local mute)
+    const newMutedState = !camMuted;
+    
+    if (localCameraTrack) {
+      // Use setEnabled to actually control publishing, not just muting
+      await localCameraTrack.setEnabled(!newMutedState).catch(console.error);
+    }
+    
+    setCamMuted(newMutedState);
   }
 
   async function endCall() {
