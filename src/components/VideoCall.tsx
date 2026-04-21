@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/globals */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
@@ -140,10 +141,16 @@ function CallUI({ channelName, appId }: VideoCallProps) {
 
   const publishTracks = [];
   if (localMicrophoneTrack) publishTracks.push(localMicrophoneTrack);
+  
+  // ✅ FIX: Publish BOTH camera and screen when screen sharing is active
+  // This ensures recording captures all streams (camera + screen)
   if (screenTrack) {
     publishTracks.push(screenTrack.videoTrack);
     if (screenTrack.audioTrack) publishTracks.push(screenTrack.audioTrack);
-  } else if (localCameraTrack) {
+  }
+  
+  // Always publish camera unless it's muted
+  if (localCameraTrack && !camMuted) {
     publishTracks.push(localCameraTrack);
   }
 
